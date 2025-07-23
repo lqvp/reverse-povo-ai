@@ -4,6 +4,9 @@ import json
 import os
 from datetime import datetime, timedelta
 import base64
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def create_expired_jwt():
     header = {"alg": "RS256", "typ": "JWT"}
@@ -11,15 +14,15 @@ def create_expired_jwt():
     exp = int((datetime.now() - timedelta(minutes=30)).timestamp())
 
     payload = {
-        "iss": "explore-iam",
-        "exp": exp,
-        "iat": now,
+        # "iss": "explore-iam",
+        # "exp": exp,
+        # "iat": now,
         "data": {
-            "externalId": "JP-D9HMUFB2JEAT",
-            "cards": [], "cardDetails": [], "widgetDetails": [],
-            "widgetComponentDetails": [], "hiddenWidgetComponents": [],
-            "unlockedWidgetComponents": [], "subCohorts": None,
-            "tokenOnboard": False, "alias": None, "accountInfo": {}
+            # "externalId": "JP-D9HMUFB2JEAT",
+            # "cards": [], "cardDetails": [], "widgetDetails": [],
+            # "widgetComponentDetails": [], "hiddenWidgetComponents": [],
+            # "unlockedWidgetComponents": [], "subCohorts": None,
+            # "tokenOnboard": False, "alias": None, "accountInfo": {}
         }
     }
 
@@ -56,13 +59,36 @@ def test_api_with_jwt(session_jwt, prompt="テスト"):
                 print(json.dumps(resp.json(), indent=2, ensure_ascii=False))
             except:
                 print("⚠️ Raw text response:")
-                print(resp.text[:500])
+                print(resp.content.decode("utf-8", errors="ignore")[:500])
         return resp.status_code == 200
     except Exception as e:
         print(f"❌ Error: {e}")
         return False
 
 if __name__ == "__main__":
-    jwt = os.getenv("session") or create_expired_jwt()
+    jwt =create_expired_jwt()
+    print("=== 使用したJWT（ダミー） ===")
+    print(jwt)
+    print("※このJWTはダミー（偽造）です。")
+
+    # JWTのheader/payloadをデコードして表示
+    try:
+        header_b64, payload_b64, _ = jwt.split('.')
+        def b64decode(data):
+            data += '=' * (-len(data) % 4)
+            return base64.urlsafe_b64decode(data)
+        header = json.loads(b64decode(header_b64))
+        payload = json.loads(b64decode(payload_b64))
+        print("--- JWT Header ---")
+        print(json.dumps(header, indent=2, ensure_ascii=False))
+        print("--- JWT Payload ---")
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+    except Exception as e:
+        print(f"JWTデコード失敗: {e}")
+
     print("🔍 Testing bypass...")
+    print("Model: sonar-pro")
+    print("Feature: ai_apps_chatbox")
+    print("deep_research: True")
+    print("質問: 現在時刻は？")
     test_api_with_jwt(jwt, "現在時刻は？")
